@@ -1,0 +1,7 @@
+gradio
+ffmpeg
+pytorch
+transformers
+pyglet
+SpeechRecognition
+gTTS
