@@ -5,3 +5,4 @@ transformers
 pyglet
 SpeechRecognition
 gTTS
+pyaudio
