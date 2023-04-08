@@ -1,6 +1,6 @@
 gradio
 ffmpeg
-pytorch
+torch
 transformers
 pyglet
 SpeechRecognition
