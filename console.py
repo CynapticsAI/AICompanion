@@ -7,6 +7,13 @@ import transformers
 import time
 transformers.logging.set_verbosity_error()
 def speak(text):
+    """
+    Speaks the text via gTTS
+    
+    Parameters:
+    text: Text to Speak
+    """
+
     # Replace '' with "" and '' with "" and have fun
     command = f'gtts-cli "{text}" --output audio.mp3'
     os.system(command)
