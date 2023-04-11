@@ -1,9 +1,10 @@
 import gradio as gr
 from transformers import pipeline,Conversation
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 #ffmpeg
 
 class AI_Companion:
-    def __init__(self, asr = "openai/whisper-tiny", chatbot = "microsoft/DialoGPT-small", device = 0):
+    def __init__(self, asr = "openai/whisper-tiny", chatbot = "microsoft/DialoGPT-small", device = -1):
         """
         Create an Instance of the Companion.
 
@@ -13,7 +14,9 @@ class AI_Companion:
         device: Device to Run the model on. Default: 0 (GPU). Set to 1 to run on CPU.
         """
         self.asr = pipeline("automatic-speech-recognition",model = asr,device=device)
-        self.chatbot = pipeline("conversational", model = chatbot,device=device)
+        model = GPT2LMHeadModel.from_pretrained(chatbot)
+        tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
+        self.chatbot = pipeline("conversational", model=model, tokenizer=tokenizer, device=device)
         self.chat = Conversation()
 
     def listen(self, audio, history):

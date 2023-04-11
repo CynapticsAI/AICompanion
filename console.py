@@ -26,7 +26,7 @@ def speak(text):
 r = sr.Recognizer()
 
 class AI_Companion:
-    def __init__(self, asr = "openai/whisper-tiny", chatbot = "microsoft/DialoGPT-small", device = 0):
+    def __init__(self, asr = "openai/whisper-tiny", chatbot = "microsoft/DialoGPT-small", device = -1):
         """
         Create an Instance of the Companion.
 
