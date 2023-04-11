@@ -5,6 +5,7 @@ import pyglet
 from transformers import pipeline,Conversation
 import transformers
 import time
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 transformers.logging.set_verbosity_error()
 def speak(text):
     """
@@ -35,7 +36,9 @@ class AI_Companion:
         device: Device to Run the model on. Default: 0 (GPU). Set to 1 to run on CPU.
         """
         self.asr = pipeline("automatic-speech-recognition",model = asr,device=device)
-        self.chatbot = pipeline("conversational", model = chatbot,device=device)
+        model = GPT2LMHeadModel.from_pretrained(chatbot)
+        tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
+        self.chatbot = pipeline("conversational", model = model,tokenizer=tokenizer,device=device)
         self.chat = Conversation()
 
     def listen(self, audio, history):
