@@ -1,5 +1,5 @@
 import gradio as gr
-from transformers import pipeline,Conversation
+from transformers import pipeline
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from Person_bot import *
 
