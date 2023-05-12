@@ -1,11 +1,13 @@
 import speech_recognition as sr
-from gtts import gTTS
 import os
 import pyglet
 from transformers import pipeline,Conversation
 import transformers
 import time
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import pyttsx3
+from Person_bot import *
+
 transformers.logging.set_verbosity_error()
 def speak(text):
     """
@@ -35,7 +37,7 @@ class AI_Companion:
         device: Device to Run the model on. Default: 0 (GPU). Set to 1 to run on CPU.
         """
         self.asr = pipeline("automatic-speech-recognition",model = asr,device=device)
-        self.model = GPT2LMHeadModel.from_pretrained(chatbot)
+        self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
         # self.chatbot = pipeline("conversational", model=model, tokenizer=tokenizer, device=device)
         self.personas=[]
@@ -47,6 +49,7 @@ class AI_Companion:
             "max_length":1000,
         }
         self.chat = Conversation()
+        self.configureTTS()
 
     def listen(self, audio, history):
         """
@@ -61,7 +64,7 @@ class AI_Companion:
         Audio : empty gradio component to clear gradio voice input
         """
         text = self.asr(audio)["text"]
-        history = history + [(text,None)]
+        history = history + [[text,None]]
         return history , None
     def add_fact(self,audio):
         text=self.asr(audio)
@@ -88,8 +91,33 @@ class AI_Companion:
         response = to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
         self.dialog_hx.append(response)
         history[-1][1] = self.tokenizer.decode(response, skip_special_tokens=True)
+        bot.speak(history[-1][1])
         return history
-bot = AI_Companion()
+    def speak(self, text):
+        """
+        Speaks.
+
+        Parameters:
+        text: text to be spoken
+        """
+        self.engine.say(text)
+        self.engine.runAndWait()
+        print("Speak")
+    
+    def configureTTS(self):
+        self.engine = pyttsx3.init()
+
+        """ RATE"""
+        self.engine.setProperty('rate', 135)     # setting up new voice rate
+
+        """VOLUME"""
+        self.engine.setProperty('volume',1.0)    # setting up volume level  between 0 and 1
+
+        """VOICE"""
+        voices = self.engine.getProperty('voices')       #getting details of current voice
+        self.engine.setProperty('voice', voices[1].id)   #changing index, changes voices. 0 for male, 1 for female  
+
+bot = AI_Companion(device = 0)
 history = []
 speak("Say something!")
 for i in range(5):
@@ -102,6 +130,5 @@ for i in range(5):
     history , _ = bot.listen("audio_file.wav",history)
     print("You:", history[-1][0])
     history = bot.respond(history)
-    speak(history[-1][1])
     print("Bot:", history[-1][1])
     time.sleep(0.25 + len(history[-1][1].split())*5/16)
