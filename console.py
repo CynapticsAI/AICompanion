@@ -1,30 +1,51 @@
-import speech_recognition as sr
 import os
-from transformers import pipeline,Conversation
-import transformers
 import time
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
 import pyttsx3
-from Person_bot import *
+import transformers
+import speech_recognition as sr
+from transformers import pipeline,Conversation
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
+
+flatten = lambda l: [item for sublist in l for item in sublist]
+
+def to_data(x):
+    if torch.cuda.is_available():
+        x = x.cpu()
+    return x.data.numpy()
+
+def to_var(x):
+    if not torch.is_tensor(x):
+        x = torch.Tensor(x)
+    if torch.cuda.is_available():
+        x = x.cuda()
+    return x
+
+# Set Logging Level to Error
 transformers.logging.set_verbosity_error()
 
 # obtain audio from the microphone
 r = sr.Recognizer()
 
 class AI_Companion:
+
     def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT", device = -1,**kwargs):
         """
         Create an Instance of the Companion.
         Parameters:
         asr: Huggingface ASR Model Card. Default: openai/whisper-tiny
         chatbot: Huggingface Conversational Model Card. Default: microsoft/DialoGPT-small
-        device: Device to Run the model on. Default: 0 (GPU). Set to 1 to run on CPU.
+        device: Device to Run the model on. Default: -1 (CPU). Set to 0 to run on GPU.
         """
+        # Initialize Speech Recognition Pipeline
         self.asr = pipeline("automatic-speech-recognition",model = asr,device=device)
+
+        # Load Language Model and Tokenizer
         self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
-        # self.chatbot = pipeline("conversational", model=model, tokenizer=tokenizer, device=device)
+
+        # Variables for PersonaGPT
         self.personas=[]
         self.dialog_hx=[]
         self.sett={
@@ -34,6 +55,8 @@ class AI_Companion:
             "max_length":1000,
         }
         self.chat = Conversation()
+
+        # Configure Text to Speech
         self.configureTTS()
 
     def listen(self, audio, history):
@@ -50,13 +73,18 @@ class AI_Companion:
         """
         text = self.asr(audio)["text"]
         history = history + [[text,None]]
-        return history , None
-    def add_fact(self,audio):
-        text=self.asr(audio)
-        print(text)
-        self.personas.append(text['text']+self.tokenizer.eos_token)
-        return None
-    def respond(self, history,**kwargs):
+        return history, None
+    
+    def add_fact(self, fact):
+        """
+        Add Fact to Persona.
+
+        Parameters:
+        fact
+        """
+        self.personas.append(fact + self.tokenizer.eos_token)
+    
+    def respond(self, history):
         """
         Generates Response to User Input.
 
@@ -66,18 +94,31 @@ class AI_Companion:
         Returns:
         history: history with response appended
         """
-        print(self.personas)
+        # Add Personas
         personas = self.tokenizer.encode(''.join(['<|p2|>'] + self.personas + ['<|sep|>'] + ['<|start|>']))
+
+        # Add User Input
         self.chat.add_user_input(history[-1][0])
-        user_inp= self.tokenizer.encode(history[-1][0]+self.tokenizer.eos_token)
+        user_inp= self.tokenizer.encode(history[-1][0] + self.tokenizer.eos_token)
         self.dialog_hx.append(user_inp)
-        bot_input_ids = to_var([personas + flatten(self.dialog_hx)]).long()
-        full_msg =self.model.generate(bot_input_ids,do_sample=True,top_k=10,top_p=0.92,max_length=1000,pad_token_id=self.tokenizer.eos_token_id)
-        response = to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
+        bot_input_ids = self.to_var([personas + flatten(self.dialog_hx)]).long()
+
+        # Generate Response
+        full_msg =self.model.generate(bot_input_ids,do_sample = True,
+                                      top_k = 10,
+                                      top_p = 0.92,
+                                      max_length = 1000,
+                                      pad_token_id = self.tokenizer.eos_token_id)
+        response = self.to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
         self.dialog_hx.append(response)
+
+        #Add Response to History
         history[-1][1] = self.tokenizer.decode(response, skip_special_tokens=True)
+
+        # Speak Response
         bot.speak(history[-1][1])
         return history
+    
     def speak(self, text):
         """
         Speaks.
@@ -92,28 +133,45 @@ class AI_Companion:
     def configureTTS(self):
         self.engine = pyttsx3.init()
 
-        """ RATE"""
+        """ RATE """
         self.engine.setProperty('rate', 135)     # setting up new voice rate
 
-        """VOLUME"""
+        """ VOLUME """
         self.engine.setProperty('volume',1.0)    # setting up volume level  between 0 and 1
 
-        """VOICE"""
+        """ VOICE """
         voices = self.engine.getProperty('voices')       #getting details of current voice
         self.engine.setProperty('voice', voices[1].id)   #changing index, changes voices. 0 for male, 1 for female  
+   
+    def to_data(self, x):
+        if torch.cuda.is_available():
+            x = x.cpu()
+        return x.data.numpy()
 
-bot = AI_Companion(device = 0)
-history = []
-bot.speak("Say something!")
-for i in range(5):
-    time.sleep(1)
-    print("Speak")
-    with sr.Microphone() as source:
-        audio = r.listen(source)
-    with open("audio_file.wav", "wb") as file:
-        file.write(audio.get_wav_data())
-    history , _ = bot.listen("audio_file.wav",history)
-    print("You:", history[-1][0])
-    history = bot.respond(history)
-    print("Bot:", history[-1][1])
-    time.sleep(0.25 + len(history[-1][1].split())*5/16)
+    def to_var(self, x):
+        if not torch.is_tensor(x):
+            x = torch.Tensor(x)
+        if self.device > -1:
+            x = x.cuda()
+        return x
+
+if __name__ == "__main__":
+    bot = AI_Companion(device = 0)
+    history = []
+    bot.speak("Say something!")
+
+    for i in range(5):
+
+        # Save Audio from mic
+        with sr.Microphone() as source:
+            audio = r.listen(source)
+        with open("audio_file.wav", "wb") as file:
+            file.write(audio.get_wav_data())
+        
+        # Bot Listens and Understands Audio(ASR)
+        history , _ = bot.listen("audio_file.wav",history)
+
+        # Print your Conversation
+        print("You:", history[-1][0])
+        history = bot.respond(history)
+        print("Bot:", history[-1][1])
