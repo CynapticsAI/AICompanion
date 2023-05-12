@@ -1,6 +1,5 @@
 import speech_recognition as sr
 import os
-import pyglet
 from transformers import pipeline,Conversation
 import transformers
 import time
@@ -9,20 +8,6 @@ import pyttsx3
 from Person_bot import *
 
 transformers.logging.set_verbosity_error()
-def speak(text):
-    """
-    Speaks the text via gTTS
-    
-    Parameters:
-    text: Text to Speak
-    """
-
-    # Replace '' with "" and '' with "" and have fun
-    command = f'gtts-cli "{text}" --output audio.mp3'
-    os.system(command)
-    music = pyglet.media.load("audio.mp3", streaming=False)
-    music.play()
-    os.remove("audio.mp3")
 
 # obtain audio from the microphone
 r = sr.Recognizer()
@@ -119,7 +104,7 @@ class AI_Companion:
 
 bot = AI_Companion(device = 0)
 history = []
-speak("Say something!")
+bot.speak("Say something!")
 for i in range(5):
     time.sleep(1)
     print("Speak")
