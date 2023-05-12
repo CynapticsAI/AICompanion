@@ -1,7 +1,10 @@
 import gradio as gr
+import pyttsx3
 from transformers import pipeline
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from Person_bot import *
+
+
 
 class AI_Companion:
     def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT", device = -1,**kwargs):
@@ -24,6 +27,20 @@ class AI_Companion:
             "max_length":1000,
         }
         # self.chat = Conversation()
+        self.configureTTS()
+
+    def configureTTS(self):
+        self.engine = pyttsx3.init()
+
+        """ RATE """
+        self.engine.setProperty('rate', 135)     # setting up new voice rate
+
+        """ VOLUME """
+        self.engine.setProperty('volume',1.0)    # setting up volume level  between 0 and 1
+
+        """ VOICE """
+        voices = self.engine.getProperty('voices')       #getting details of current voice
+        self.engine.setProperty('voice', voices[1].id)   #changing index, changes voices. 0 for male, 1 for female 
 
     def listen(self, audio, history):
         """
@@ -41,6 +58,12 @@ class AI_Companion:
         history = history + [(text,None)]
         return history , None
     def add_fact(self,audio):
+        '''
+        Add fact to Persona.
+
+        Parameters:
+        fact
+        '''
         text=self.asr(audio)
         print(text)
         self.personas.append(text['text']+self.tokenizer.eos_token)
@@ -55,7 +78,6 @@ class AI_Companion:
         Returns:
         history: history with response appended
         """
-        print(self.personas)
         personas = self.tokenizer.encode(''.join(['<|p2|>'] + self.personas + ['<|sep|>'] + ['<|start|>']))
         # self.chat.add_user_input(history[-1][0])
         user_inp= self.tokenizer.encode(history[-1][0]+self.tokenizer.eos_token)
@@ -65,11 +87,13 @@ class AI_Companion:
         response = to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
         self.dialog_hx.append(response)
         history[-1][1] = self.tokenizer.decode(response, skip_special_tokens=True)
-        return history
+        self.engine.save_to_file(history[-1][1] , 'voice.mp3')
+        self.engine.runAndWait()
+        return history, 'voice.mp3'
 bot = AI_Companion()
 
 def clear():
-    return None
+    return None,[]
 
 with gr.Blocks() as demo:
     chatbot = gr.Chatbot([], elem_id="chatbot").style(height=600)
@@ -78,7 +102,6 @@ with gr.Blocks() as demo:
         b1 = gr.Button("Submit")
         b2 = gr.Button("Clear")
         b3=  gr.Button("Add Fact")
-    b1.click(bot.listen, [audio, chatbot], [chatbot, audio]).then(bot.respond, chatbot, chatbot)
-    b2.click(clear, [] , audio)
-    b3.click(bot.add_fact,[audio],[audio])
+    b1.click(bot.listen, [audio, chatbot], [chatbot, audio]).then(bot.respond, chatbot, [chatbot,audio])
+    b2.click(clear, [] , [audio,chatbot])
 demo.launch()
