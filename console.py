@@ -10,18 +10,6 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
-def to_data(x):
-    if torch.cuda.is_available():
-        x = x.cpu()
-    return x.data.numpy()
-
-def to_var(x):
-    if not torch.is_tensor(x):
-        x = torch.Tensor(x)
-    if torch.cuda.is_available():
-        x = x.cuda()
-    return x
-
 # Set Logging Level to Error
 transformers.logging.set_verbosity_error()
 
@@ -35,7 +23,7 @@ class AI_Companion:
         Create an Instance of the Companion.
         Parameters:
         asr: Huggingface ASR Model Card. Default: openai/whisper-tiny
-        chatbot: Huggingface Conversational Model Card. Default: microsoft/DialoGPT-small
+        chatbot: Huggingface Conversational Model Card. Default: af1tang/personaGPT
         device: Device to Run the model on. Default: -1 (CPU). Set to 0 to run on GPU.
         """
         # Initialize Speech Recognition Pipeline
@@ -158,8 +146,14 @@ class AI_Companion:
 if __name__ == "__main__":
     bot = AI_Companion(device = 0)
     history = []
-    bot.speak("Say something!")
+    bot.speak("Hi, I am your AI Companion. Do you want to add any specific traits?")
+    persona = input("Y/n")
+    while persona.lower() == 'y':
+        bot.add_fact(input("Enter Fact:"))
+        persona = input("Add More? (Y/n)")
 
+    bot.speak("Configured. What you want to talk about?")
+    
     for i in range(5):
 
         # Save Audio from mic
