@@ -32,7 +32,7 @@ class AI_Companion:
         # Load Language Model and Tokenizer
         self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
-
+        self.device =  device
         # Variables for PersonaGPT
         self.personas=[]
         self.dialog_hx=[]

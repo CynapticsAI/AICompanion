@@ -122,9 +122,9 @@ bot = AI_Companion()
 
 # Create the Interface
 with gr.Blocks() as demo:
-    chatbot = gr.Chatbot([], elem_id="chatbot").style(height=450)
-    audio = gr.Audio(source="microphone", type="filepath", title="input")
-    audio1 = gr.Audio(type="filepath", title="output")
+    chatbot = gr.Chatbot([], elem_id = "chatbot").style(height = 450)
+    audio = gr.Audio(source = "microphone", type = "filepath", label = "Input")
+    audio1 = gr.Audio(type = "filepath", label = "Output")
     with gr.Row():
         b1 = gr.Button("Submit")
         b2 = gr.Button("Clear")
