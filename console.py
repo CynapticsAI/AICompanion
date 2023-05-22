@@ -31,7 +31,7 @@ class AI_Companion:
 
         # Load Language Model and Tokenizer
         self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(device)
-        self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
+        self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot,padding_side='left')
         self.device =  device
         # Variables for PersonaGPT
         self.personas=[]
@@ -95,7 +95,7 @@ class AI_Companion:
         full_msg =self.model.generate(bot_input_ids,do_sample = True,
                                       top_k = 10,
                                       top_p = 0.92,
-                                      max_length = 1000,
+                                      max_new_tokens = 2000,
                                       pad_token_id = self.tokenizer.eos_token_id)
         response = self.to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
         self.dialog_hx.append(response)

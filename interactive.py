@@ -3,7 +3,9 @@ import gradio as gr
 from gtts import gTTS
 from transformers import pipeline
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
+css = """
+#input {background-color: #FFCCCB} 
+"""
 # Utility Functions
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -26,7 +28,7 @@ class AI_Companion:
     Class that Implements AI Companion.
     """
 
-    def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT", device = -1,**kwargs):
+    def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT",**kwargs):
         """
         Create an Instance of the Companion.
         Parameters:
@@ -34,8 +36,9 @@ class AI_Companion:
         chatbot: Huggingface Conversational Model Card. Default: af1tang/personaGPT
         device: Device to Run the model on. Default: -1 (GPU). Set to 1 to run on CPU.
         """
-        self.asr = pipeline("automatic-speech-recognition",model = asr,device=device)
-        self.device = 'cuda' if device == -1 else 'cpu'
+
+        self.device="cuda" if torch.cuda.is_available() else "cpu"
+        self.asr = pipeline("automatic-speech-recognition",model = asr,device=self.device)
         self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(self.device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
         self.personas=[]
@@ -104,6 +107,7 @@ class AI_Companion:
         response = to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
         self.dialog_hx.append(response)
         history[-1][1] = self.tokenizer.decode(response, skip_special_tokens=True)
+        print(history[-1][1])
         self.speak(history[-1][1])
 
         return history, "out.mp3"
@@ -124,7 +128,7 @@ bot = AI_Companion()
 with gr.Blocks() as demo:
     chatbot = gr.Chatbot([], elem_id = "chatbot").style(height = 450)
     audio = gr.Audio(source = "microphone", type = "filepath", label = "Input")
-    audio1 = gr.Audio(type = "filepath", label = "Output")
+    audio1 = gr.Audio(type = "filepath", label = "Output",elem_id="input")
     with gr.Row():
         b1 = gr.Button("Submit")
         b2 = gr.Button("Clear")
