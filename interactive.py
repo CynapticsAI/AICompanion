@@ -1,10 +1,11 @@
 import gradio as gr
-import pyttsx3
+# import pyttsx3
 from transformers import pipeline
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from Person_bot import *
-
-
+from gtts import gTTS
+from threading import Thread
+import playsound
 
 class AI_Companion:
     def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT", device = -1,**kwargs):
@@ -16,7 +17,8 @@ class AI_Companion:
         device: Device to Run the model on. Default: -1 (GPU). Set to 1 to run on CPU.
         """
         self.asr = pipeline("automatic-speech-recognition",model = asr,device=device)
-        self.model = GPT2LMHeadModel.from_pretrained(chatbot)
+        self.device = 'cuda' if device ==-1 else 'cpu'
+        self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(self.device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
         self.personas=[]
         self.dialog_hx=[]
@@ -27,20 +29,20 @@ class AI_Companion:
             "max_length":1000,
         }
         # self.chat = Conversation()
-        self.configureTTS()
+        # self.configureTTS()
 
-    def configureTTS(self):
-        self.engine = pyttsx3.init()
+    # def configureTTS(self):
+    #     self.engine = pyttsx3.init()
 
-        """ RATE """
-        self.engine.setProperty('rate', 135)     # setting up new voice rate
+    #     """ RATE """
+    #     self.engine.setProperty('rate', 135)     # setting up new voice rate
 
-        """ VOLUME """
-        self.engine.setProperty('volume',1.0)    # setting up volume level  between 0 and 1
+    #     """ VOLUME """
+    #     self.engine.setProperty('volume',1.0)    # setting up volume level  between 0 and 1
 
-        """ VOICE """
-        voices = self.engine.getProperty('voices')       #getting details of current voice
-        self.engine.setProperty('voice', voices[1].id)   #changing index, changes voices. 0 for male, 1 for female 
+    #     """ VOICE """
+    #     voices = self.engine.getProperty('voices')       #getting details of current voice
+    #     self.engine.setProperty('voice', voices[1].id)   #changing index, changes voices. 0 for male, 1 for female 
 
     def listen(self, audio, history):
         """
@@ -68,6 +70,7 @@ class AI_Companion:
         print(text)
         self.personas.append(text['text']+self.tokenizer.eos_token)
         return None
+    
     def respond(self, history,**kwargs):
         """
         Generates Response to User Input.
@@ -87,21 +90,37 @@ class AI_Companion:
         response = to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
         self.dialog_hx.append(response)
         history[-1][1] = self.tokenizer.decode(response, skip_special_tokens=True)
-        self.engine.save_to_file(history[-1][1] , 'voice.mp3')
-        self.engine.runAndWait()
-        return history, 'voice.mp3'
+        # self.engine.save_to_file(history[-1][1] , 'voice.mp3')
+        # self.engine.runAndWait()
+        self.speak(history[-1][1])
+        return history, "out.mp3"
+    
+    def play_music(self):
+        print()
+        playsound('out.mp3')
+
+    def speak(self, text):
+        tts = gTTS(text, lang='en')
+        tts.save('out.mp3')
+        # Play Music on Separate Thread (in background)
+        # music_thread = Thread(target=self.play_music)
+        # music_thread.start()
+
+
 bot = AI_Companion()
 
 def clear():
     return None,[]
 
 with gr.Blocks() as demo:
-    chatbot = gr.Chatbot([], elem_id="chatbot").style(height=600)
-    audio = gr.Audio(source="microphone", type="filepath")
+    chatbot = gr.Chatbot([], elem_id="chatbot").style(height=450)
+    audio = gr.Audio(source="microphone", type="filepath", title="input")
+    audio1 = gr.Audio(type="filepath", title="output")
     with gr.Row():
         b1 = gr.Button("Submit")
         b2 = gr.Button("Clear")
         b3=  gr.Button("Add Fact")
-    b1.click(bot.listen, [audio, chatbot], [chatbot, audio]).then(bot.respond, chatbot, [chatbot,audio])
+    b1.click(bot.listen, [audio, chatbot], [chatbot, audio]).then(bot.respond, chatbot, [chatbot, audio1])
     b2.click(clear, [] , [audio,chatbot])
+    b3.click(bot.add_fact, [audio], [audio])
 demo.launch()
