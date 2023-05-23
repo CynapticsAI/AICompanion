@@ -1,3 +1,4 @@
+fastapi
 gradio
 ffmpeg
 torch
@@ -6,3 +7,4 @@ pyglet
 SpeechRecognition
 gTTS
 pyaudio
+pyttsx3
