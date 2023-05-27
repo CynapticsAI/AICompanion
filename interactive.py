@@ -23,6 +23,11 @@ def to_var(x):
 
 def clear():
     return None,[]
+
+def append(text, history):
+    history.append([text,None])
+    return history
+
 class AI_Companion:
     """
     Class that Implements AI Companion.
@@ -95,7 +100,7 @@ class AI_Companion:
         self.dialog_hx.append(user_inp)
         bot_input_ids = to_var([personas + flatten(self.dialog_hx)]).long()
 
-        full_msg =self.model.generate(bot_input_ids, 
+        full_msg = self.model.generate(bot_input_ids, 
                                       do_sample = True,
                                       top_k = 10,
                                       top_p = 0.92,
@@ -125,14 +130,16 @@ bot = AI_Companion()
 
 # Create the Interface
 with gr.Blocks() as demo:
-    chatbot = gr.Chatbot([], elem_id = "chatbot").style(height = 450)
+    chatbot = gr.Chatbot([], elem_id = "chatbot").style(height = 350)
     audio = gr.Audio(source = "microphone", type = "filepath", label = "Input")
+    msg = gr.Textbox()
     audio1 = gr.Audio(type = "filepath", label = "Output",elem_id="input")
     with gr.Row():
         b1 = gr.Button("Submit")
         b2 = gr.Button("Clear")
         b3=  gr.Button("Add Fact")
     b1.click(bot.listen, [audio, chatbot], [chatbot, audio]).then(bot.respond, chatbot, [chatbot, audio1])
+    msg.submit(append, [msg, chatbot], chatbot).then(bot.respond, chatbot, [chatbot, audio1])
     b2.click(clear, [] , [audio,chatbot])
     b3.click(bot.add_fact, [audio], [audio])
 demo.launch()

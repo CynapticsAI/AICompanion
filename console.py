@@ -1,12 +1,11 @@
 import os
-import time
 import torch
-import pyttsx3
 import transformers
+from gtts import gTTS
 import speech_recognition as sr
+from playsound import playsound
 from transformers import pipeline,Conversation
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -18,21 +17,21 @@ r = sr.Recognizer()
 
 class AI_Companion:
 
-    def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT", device = -1,**kwargs):
+    def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT",**kwargs):
         """
         Create an Instance of the Companion.
         Parameters:
         asr: Huggingface ASR Model Card. Default: openai/whisper-tiny
         chatbot: Huggingface Conversational Model Card. Default: af1tang/personaGPT
-        device: Device to Run the model on. Default: -1 (CPU). Set to 0 to run on GPU.
         """
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
         # Initialize Speech Recognition Pipeline
-        self.asr = pipeline("automatic-speech-recognition",model = asr,device=device)
+        self.asr = pipeline("automatic-speech-recognition",model = asr, device = -1 if self.device == "cpu" else 0)
 
         # Load Language Model and Tokenizer
-        self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(device)
+        self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(self.device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot,padding_side='left')
-        self.device =  device
         # Variables for PersonaGPT
         self.personas=[]
         self.dialog_hx=[]
@@ -43,9 +42,6 @@ class AI_Companion:
             "max_length":1000,
         }
         self.chat = Conversation()
-
-        # Configure Text to Speech
-        self.configureTTS()
 
     def listen(self, audio, history):
         """
@@ -109,28 +105,17 @@ class AI_Companion:
     
     def speak(self, text):
         """
-        Speaks.
-
+        Speaks the given text using gTTS,
         Parameters:
         text: text to be spoken
         """
-        self.engine.say(text)
-        self.engine.runAndWait()
-        print("Speak")
+        tts = gTTS(text, lang='en')
+        tts.save('out.mp3')
+        playsound("out.mp3")
+        os.remove("out.mp3")
+
+
     
-    def configureTTS(self):
-        self.engine = pyttsx3.init()
-
-        """ RATE """
-        self.engine.setProperty('rate', 135)     # setting up new voice rate
-
-        """ VOLUME """
-        self.engine.setProperty('volume',1.0)    # setting up volume level  between 0 and 1
-
-        """ VOICE """
-        voices = self.engine.getProperty('voices')       #getting details of current voice
-        self.engine.setProperty('voice', voices[1].id)   #changing index, changes voices. 0 for male, 1 for female  
-   
     def to_data(self, x):
         if torch.cuda.is_available():
             x = x.cpu()
@@ -139,7 +124,7 @@ class AI_Companion:
     def to_var(self, x):
         if not torch.is_tensor(x):
             x = torch.Tensor(x)
-        if self.device > -1:
+        if torch.cuda.is_available():
             x = x.cuda()
         return x
 
