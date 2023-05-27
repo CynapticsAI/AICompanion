@@ -28,17 +28,16 @@ class AI_Companion:
     Class that Implements AI Companion.
     """
 
-    def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT",**kwargs):
+    def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT"):
         """
         Create an Instance of the Companion.
         Parameters:
         asr: Huggingface ASR Model Card. Default: openai/whisper-tiny
         chatbot: Huggingface Conversational Model Card. Default: af1tang/personaGPT
-        device: Device to Run the model on. Default: -1 (GPU). Set to 1 to run on CPU.
         """
 
-        self.device="cuda" if torch.cuda.is_available() else "cpu"
-        self.asr = pipeline("automatic-speech-recognition",model = asr,device=self.device)
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        self.asr = pipeline("automatic-speech-recognition",model = asr,device= -1 if self.device == "cpu" else 0)
         self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(self.device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
         self.personas=[]
