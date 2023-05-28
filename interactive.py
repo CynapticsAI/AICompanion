@@ -26,7 +26,8 @@ def clear():
 
 def append(text, history):
     history.append([text,None])
-    return history
+    history , audio = bot.respond(history)
+    return history, audio, None
 
 class AI_Companion:
     """
@@ -67,7 +68,7 @@ class AI_Companion:
         Audio : empty gradio component to clear gradio voice input
         """
         text = self.asr(audio)["text"]
-        history = history + [(text,None)]
+        history.append([text,None])
         return history , None
     
     def add_fact(self,audio):
@@ -79,7 +80,6 @@ class AI_Companion:
         audio : audio of the spoken fact
         '''
         text=self.asr(audio)
-        print(text)
         self.personas.append(text['text']+self.tokenizer.eos_token)
         return None
     
@@ -111,10 +111,14 @@ class AI_Companion:
         response = to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
         self.dialog_hx.append(response)
         history[-1][1] = self.tokenizer.decode(response, skip_special_tokens=True)
-        print(history[-1][1])
         self.speak(history[-1][1])
 
         return history, "out.mp3"
+    
+    def talk(self, audio, history):
+        history, _ = self.listen(audio, history)
+        history, audio = self.respond(history)
+        return history, None, audio
 
     def speak(self, text):
         """
@@ -130,7 +134,7 @@ bot = AI_Companion()
 
 # Create the Interface
 with gr.Blocks() as demo:
-    chatbot = gr.Chatbot([], elem_id = "chatbot").style(height = 350)
+    chatbot = gr.Chatbot([], elem_id = "chatbot").style(height = 300)
     audio = gr.Audio(source = "microphone", type = "filepath", label = "Input")
     msg = gr.Textbox()
     audio1 = gr.Audio(type = "filepath", label = "Output",elem_id="input")
@@ -138,8 +142,8 @@ with gr.Blocks() as demo:
         b1 = gr.Button("Submit")
         b2 = gr.Button("Clear")
         b3=  gr.Button("Add Fact")
-    b1.click(bot.listen, [audio, chatbot], [chatbot, audio]).then(bot.respond, chatbot, [chatbot, audio1])
-    msg.submit(append, [msg, chatbot], chatbot).then(bot.respond, chatbot, [chatbot, audio1])
+    b1.click(bot.talk, [audio, chatbot], [chatbot, audio, audio1])
+    msg.submit(append, [msg, chatbot], [chatbot, audio1, msg])
     b2.click(clear, [] , [audio,chatbot])
     b3.click(bot.add_fact, [audio], [audio])
 demo.launch()
