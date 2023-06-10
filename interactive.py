@@ -103,7 +103,8 @@ class AI_Companion:
         bot_input_ids = to_var([person + flatten(dialog_hx)]).long()
         with torch.no_grad():
 
-            full_msg = self.model.generate(bot_input_ids, 
+            full_msg = self.model.generate(bot_input_ids,
+                                        repetition_penalty=1.2,
                                         top_k = 10,
                                         top_p = 0.92,
                                         max_new_tokens = 256,
