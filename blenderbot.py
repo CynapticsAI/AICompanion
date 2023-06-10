@@ -1,8 +1,10 @@
 import torch
+import os
 import gradio as gr
 from gtts import gTTS
 from transformers import pipeline
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM,AutoModelForCausalLM
 css = """
 #input {background-color: #FFCCCB} 
 """
@@ -24,29 +26,31 @@ def to_var(x):
 def clear():
     return None,[]
 
-def append(text, history,dialog_hx,personas):
+def append(text, history):
     history.append([text,None])
-    history , audio,dialog_hx= bot.respond(history,dialog_hx,personas)
-    return history, audio, None,dialog_hx
+    history , audio = bot.respond(history)
+    return history, audio, None
 
 class AI_Companion:
     """
     Class that Implements AI Companion.
     """
 
-    def __init__(self, asr = "openai/whisper-tiny", chatbot = "af1tang/personaGPT"):
+    def __init__(self, asr = "openai/whisper-tiny", chatbot = "facebook/blenderbot-3B"):
         """
         Create an Instance of the Companion.
         Parameters:
         asr: Huggingface ASR Model Card. Default: openai/whisper-tiny
         chatbot: Huggingface Conversational Model Card. Default: af1tang/personaGPT
         """
-
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.asr = pipeline("automatic-speech-recognition",model = asr,device= -1 if self.device == "cpu" else 0)
-        self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(self.device)
-        self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
+        # self.model = GPT2LMHeadModel.from_pretrained(chatbot).to(self.device)
+        # self.tokenizer = GPT2Tokenizer.from_pretrained(chatbot)
+        self.model=AutoModelForSeq2SeqLM.from_pretrained(chatbot).to(self.device)
+        self.tokenizer=AutoTokenizer.from_pretrained(chatbot)
         self.personas=[]
+        self.dialog_hx=[]
         self.sett={
             "do_sample":True,
             "top_k":10,
@@ -70,7 +74,7 @@ class AI_Companion:
         history.append([text,None])
         return history , None
     
-    def add_fact(self,audio,personas,msg):
+    def add_fact(self,audio):
         '''
         Add fact to Persona.
         Takes in Audio, converts it into text and adds it to the facts list.
@@ -78,14 +82,11 @@ class AI_Companion:
         Parameters:
         audio : audio of the spoken fact
         '''
-        if audio is not None:
-            text=self.asr(audio)
-            personas.append(text['text']+self.tokenizer.eos_token)
-        else:
-            personas.append(msg+self.tokenizer.eos_token)
-        return None,personas,None
+        text=self.asr(audio)
+        self.personas.append(text['text']+self.tokenizer.eos_token)
+        return None
     
-    def respond(self, history,dialog_hx,personas,**kwargs):
+    def respond(self, history,**kwargs):
         """
         Generates Response to User Input.
 
@@ -97,33 +98,30 @@ class AI_Companion:
         audio: audio of the spoken response
         """
 
-        person = self.tokenizer.encode(''.join(['<|p2|>'] + personas + ['<|sep|>'] + ['<|start|>']))
-        user_inp= self.tokenizer.encode(history[-1][0]+self.tokenizer.eos_token)
-        dialog_hx.append(user_inp)
-        bot_input_ids = to_var([person + flatten(dialog_hx)]).long()
+        personas = self.tokenizer.encode(''.join(['<|p2|>'] + self.personas + ['<|sep|>'] + ['<|start|>']))
+        print(history)
+        user_inp= self.tokenizer.encode(history[-1][0])
+        self.dialog_hx.append(user_inp)
+        bot_input_ids = to_var([personas + flatten(self.dialog_hx)]).long()
+        if (len(bot_input_ids[0])>128):
+            bot_input_ids=torch.narrow(bot_input_ids,1,-128,128)
         with torch.no_grad():
+            full_msg = self.model.generate(bot_input_ids,do_sample = True,
+                                      top_k = 10,
+                                      top_p = 0.92,
+                                      max_new_tokens= 512)
 
-            full_msg = self.model.generate(bot_input_ids, 
-                                        top_k = 10,
-                                        top_p = 0.92,
-                                        max_new_tokens = 256,
-                                        num_beams=2,
-                                        pad_token_id = self.tokenizer.eos_token_id)
-        
-
-        response = to_data(full_msg.detach()[0])[bot_input_ids.shape[-1]:]
-        dialog_hx.append(response)
+        response = to_data(full_msg[0])
+        self.dialog_hx.append(response)
         history[-1][1] = self.tokenizer.decode(response, skip_special_tokens=True)
         self.speak(history[-1][1])
-        return history, "out.mp3",dialog_hx
+
+        return history, "out.mp3"
     
-    def talk(self, audio, history,dialog_hx,personas,text):
-        if audio is not None:
-            history, _ = self.listen(audio, history)
-        else:
-            history.append([text,None])
-        history, audio,dialog_hx = self.respond(history,dialog_hx,personas)
-        return history, None, audio,dialog_hx,None
+    def talk(self, audio, history):
+        history, _ = self.listen(audio, history)
+        history, audio = self.respond(history)
+        return history, None, audio
 
     def speak(self, text):
         """
@@ -136,16 +134,9 @@ class AI_Companion:
 
 # Initialize AI Companion
 bot = AI_Companion()
-personas=[]
-for i in ['I\'m a 19 year old girl','I study at IIT Indore','I am an easy-going and fun loving person','I love to swim','I am friendly, nice ,fun and kind','I am studious and get good grades']:
-    response = i+ bot.tokenizer.eos_token
-    personas.append(response)
-
 
 # Create the Interface
 with gr.Blocks() as demo:
-    dialog_hx=gr.State([])
-    personas=gr.State(personas)
     chatbot = gr.Chatbot([], elem_id = "chatbot").style(height = 300)
     audio = gr.Audio(source = "microphone", type = "filepath", label = "Input")
     msg = gr.Textbox()
@@ -154,8 +145,8 @@ with gr.Blocks() as demo:
         b1 = gr.Button("Submit")
         b2 = gr.Button("Clear")
         b3=  gr.Button("Add Fact")
-    b1.click(bot.talk, [audio, chatbot,dialog_hx,personas,msg], [chatbot, audio, audio1,dialog_hx,msg])
-    msg.submit(append, [msg, chatbot,dialog_hx,personas], [chatbot, audio1, msg,dialog_hx])
+    b1.click(bot.talk, [audio, chatbot], [chatbot, audio, audio1])
+    msg.submit(append, [msg, chatbot], [chatbot, audio1, msg])
     b2.click(clear, [] , [audio,chatbot])
-    b3.click(bot.add_fact, [audio,personas,msg], [audio,personas,msg])
+    b3.click(bot.add_fact, [audio], [audio])
 demo.launch(share=True)
