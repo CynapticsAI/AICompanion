@@ -4,7 +4,7 @@ AI Companion that listens to you and talks to you.
 
 ## How to Use
 
-You can run it on your laptop or try it out via this [website]()!
+You can run it on your laptop or try it out via this [website](https://huggingface.co/spaces/Icar/AICompanion)!
 
 ### Running on your laptop:
 
