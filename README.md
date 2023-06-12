@@ -16,11 +16,12 @@ You can run it on your laptop or try it out via this [website](https://huggingfa
 
 ### Using the Web Version:
 
-- Visit [website]()
-- Click on "Record from microphone"
-- Click Submit
+- Visit [website](https://huggingface.co/spaces/Icar/AICompanion)
+- Click on "Record from microphone" and click the "Submit" button
+- Additionally, you can record a fact about the AI, for example, "I am 40 years old", "I have been a teacher for more than 10 years", and click the add fact button to add the fact about the AI.
+- You can also use the text box provided to submit inputs. Type out your message, and press Enter on your keyboard/"Submit" button to submit text.
+- You can also add facts via the text box, simply input the fact in the text box and press add fact.
 - The output will be displayed in the chat interface and audio will be available in the audio block above the buttons.
-- Additionally, You can record a fact about the AI, for example, "I am 40 years old", "I have been a teacher for more than 10 years", and click the add fact button to add the fact about the AI.
 
 <img width="1280" alt="interactive" src="https://github.com/CynapticsAI/AICompanion/assets/95569637/268412b5-1d13-43e1-a2be-f0af0cab5c2c">
 
@@ -34,3 +35,7 @@ You can run it on your laptop or try it out via this [website](https://huggingfa
 ## Contributers
 
 * [Yatharth Gupta](https://github.com/Warlord-K)
+* [Vishnu V Jaddipal](https://github.com/Gothos)
+* [Samip Shah](https://github.com/snarkyidiot)
+* [Yash Vashishtha](https://github.com/Yashiiti)
+* [Shivankar Sharma](https://github.com/Shivankar007)
