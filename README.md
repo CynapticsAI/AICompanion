@@ -24,7 +24,7 @@ You can run it on your laptop or try it out via this [website](https://huggingfa
 - You can also add facts via the text box, simply input the fact in the text box and press add fact.
 - The output will be displayed in the chat interface and audio will be available in the audio block above the buttons.
 
-[AIcomp](https://github.com/CynapticsAI/AICompanion/assets/95531133/5c3ae188-f3e8-45ac-a581-ddc4818b02fe)
+![AIcomp](https://github.com/CynapticsAI/AICompanion/assets/95531133/5c3ae188-f3e8-45ac-a581-ddc4818b02fe)
 
 
 ## Components
