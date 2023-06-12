@@ -7,4 +7,4 @@ pyglet
 SpeechRecognition
 gTTS
 pyaudio
-pyttsx3
+playsound
