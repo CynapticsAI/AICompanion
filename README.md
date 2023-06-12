@@ -5,6 +5,7 @@ AI Companion that listens to you and talks to you.
 ## How to Use
 
 You can run it on your laptop or try it out via this [website](https://huggingface.co/spaces/Icar/AICompanion)!
+!
 
 ### Running on your laptop:
 
@@ -23,7 +24,7 @@ You can run it on your laptop or try it out via this [website](https://huggingfa
 - You can also add facts via the text box, simply input the fact in the text box and press add fact.
 - The output will be displayed in the chat interface and audio will be available in the audio block above the buttons.
 
-<img width="1280" alt="interactive" src="https://github.com/CynapticsAI/AICompanion/assets/95569637/268412b5-1d13-43e1-a2be-f0af0cab5c2c">
+[AIcomp](https://github.com/CynapticsAI/AICompanion/assets/95531133/5c3ae188-f3e8-45ac-a581-ddc4818b02fe)
 
 
 ## Components
