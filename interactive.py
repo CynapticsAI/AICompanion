@@ -22,7 +22,7 @@ def to_var(x):
     return x
 
 def clear():
-    return None,[]
+    return None,[],[]
 
 def append(text, history,dialog_hx,personas):
     history.append([text,None])
@@ -104,7 +104,7 @@ class AI_Companion:
         with torch.no_grad():
 
             full_msg = self.model.generate(bot_input_ids,
-                                        repetition_penalty=1.2,
+                                        repetition_penalty=1.4,
                                         top_k = 10,
                                         top_p = 0.92,
                                         max_new_tokens = 256,
@@ -157,6 +157,6 @@ with gr.Blocks() as demo:
         b3=  gr.Button("Add Fact")
     b1.click(bot.talk, [audio, chatbot,dialog_hx,personas,msg], [chatbot, audio, audio1,dialog_hx,msg])
     msg.submit(append, [msg, chatbot,dialog_hx,personas], [chatbot, audio1, msg,dialog_hx])
-    b2.click(clear, [] , [audio,chatbot])
+    b2.click(clear, [] , [audio,chatbot,dialog_hx])
     b3.click(bot.add_fact, [audio,personas,msg], [audio,personas,msg])
 demo.launch(share=True)
